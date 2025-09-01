@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consent Phrase Visualization</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: max-content max-content;
+      justify-content: space-between;
+      max-width: 600px;
+      margin: 0 auto;
+      position: relative;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .column {}
+
+    .phrase,
+    .demeanor {
+      padding: 8px;
+      margin: 4px 0;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+      display: block;
+      width: 100%;
+    }
+
+    .phrase:hover,
+    .demeanor:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .phrase.dimmed,
+    .demeanor.dimmed {
+      opacity: 0.3;
+    }
+
+    .enthusiastic {
+      color: #4ade80;
+    }
+
+    .neutral {
+      color: #9ca3af;
+    }
+
+    .dismissive {
+      color: #f87171;
+    }
+
+    .phrase {
+      text-align: right;
+      padding-left: 0;
+    }
+
+    .demeanor {
+      text-align: left;
+      padding-right: 0;
+    }
+
+    svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .connection-line {
+      stroke: rgba(100, 200, 255, 0.6);
+      stroke-width: 2;
+      fill: none;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .connection-line.dimmed {
+      opacity: 0.1;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+
+      }
+
+      .container {
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+
+      h3 {
+
+        margin-bottom: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="column" id="phrases">
+      <h3>Phrases</h3>
+    </div>
+    <div class="column" id="demeanors">
+      <h3>Demeanors</h3>
+    </div>
+    <svg id="connections"></svg>
+  </div>
+
+  <script>
+    const consentData = [
+      ["Fuck yes", "Enthusiastically"],
+      ["Hell yeah", "Excitedly"],
+      ["Absolutely", "Emphatically"],
+      ["Yes", "Eagerly"],
+      ["I'd love to", "Warmly"],
+      ["Sure", "Enthusiastically"],
+      ["Yes", "Warmly"],
+      ["Definitely", "Firmly"],
+      ["Sure", "Warmly"],
+      ["Yes", "Cheerfully"],
+      ["Okay", "Enthusiastically"],
+      ["Sure", "Casually"],
+      ["Yes", "Confidently"],
+      ["Sure", "Agreeably"],
+      ["Yes", "Clearly"],
+      ["Sure", "Readily"],
+      ["Yes", "Flatly"],
+      ["Sure", "Flatly"],
+      ["Okay", "Indifferently"],
+      ["I guess", "Uncertainly"],
+      ["Fine", "Resignedly"],
+      ["Whatever", "Indifferently"],
+      ["Sure", "Dryly"],
+      ["I suppose", "Hesitantly"],
+      ["Sure", "Dismissively"],
+      ["Maybe later", "Evasively"],
+      ["No thanks", "Politely"],
+      ["Not really", "Gently"],
+      ["I don't think so", "Carefully"],
+      ["No", "Hesitantly"],
+      ["No", "Curtly"],
+      ["Absolutely not", "Coldly"],
+      ["Hell no", "Sharply"],
+      ["Fuck no", "Angrily"]
+    ];
+
+    const neutralStart = 17;
+    const dismissiveStart = 24;
+
+    // Extract unique phrases and demeanors
+    const uniquePhrases = [...new Set(consentData.map(d => d[0]))];
+    const uniqueDemeanors = [...new Set(consentData.map(d => d[1]))];
+
+    // Create connections map
+    const connections = new Map();
+    consentData.forEach(([phrase, demeanor], index) => {
+      if (!connections.has(phrase)) {
+        connections.set(phrase, []);
+      }
+      connections.get(phrase).push({
+        demeanor,
+        category: index < neutralStart ? 'enthusiastic' :
+          index < dismissiveStart ? 'neutral' : 'dismissive'
+      });
+    });
+
+    // Get category for phrase based on its first appearance
+    function getPhraseCategory(phrase) {
+      const firstIndex = consentData.findIndex(d => d[0] === phrase);
+      return firstIndex < neutralStart ? 'enthusiastic' :
+        firstIndex < dismissiveStart ? 'neutral' : 'dismissive';
+    }
+
+    // Get category for demeanor
+    function getDemeanorCategory(demeanor) {
+      const firstIndex = consentData.findIndex(d => d[1] === demeanor);
+      return firstIndex < neutralStart ? 'enthusiastic' :
+        firstIndex < dismissiveStart ? 'neutral' : 'dismissive';
+    }
+
+    // Create phrase elements
+    const phrasesContainer = d3.select('#phrases');
+    const phraseElements = phrasesContainer.selectAll('.phrase')
+      .data(uniquePhrases)
+      .enter()
+      .append('div')
+      .attr('class', d => `phrase ${getPhraseCategory(d)}`)
+      .text(d => d)
+      .on('click', function (event, d) {
+        handlePhraseClick(d, this);
+      });
+
+    // Create demeanor elements
+    const demeanorsContainer = d3.select('#demeanors');
+    const demeanorElements = demeanorsContainer.selectAll('.demeanor')
+      .data(uniqueDemeanors)
+      .enter()
+      .append('div')
+      .attr('class', d => `demeanor ${getDemeanorCategory(d)}`)
+      .text(d => d)
+      .on('click', function (event, d) {
+        handleDemeanorClick(d, this);
+      });
+
+    // SVG setup
+    const svg = d3.select('#connections');
+
+    let activePhrase = null;
+    let activeDemeanor = null;
+
+    function handlePhraseClick(phrase, element) {
+      if (activePhrase === phrase) {
+        clearSelection();
+        return;
+      }
+
+      activePhrase = phrase;
+      activeDemeanor = null;
+
+      // Clear previous selections
+      d3.selectAll('.phrase, .demeanor').classed('dimmed', false);
+
+      // Get connected demeanors
+      const connectedDemeanors = connections.get(phrase) || [];
+      const connectedDemeanorNames = connectedDemeanors.map(d => d.demeanor);
+
+      // Dim non-connected elements
+      d3.selectAll('.phrase').classed('dimmed', d => d !== phrase);
+      d3.selectAll('.demeanor').classed('dimmed', d => !connectedDemeanorNames.includes(d));
+
+      // Dim non-connected lines
+      d3.selectAll('.connection-line').classed('dimmed', function () {
+        const linePhrase = d3.select(this).attr('data-phrase');
+        return linePhrase !== phrase;
+      });
+    }
+
+    function handleDemeanorClick(demeanor, element) {
+      if (activeDemeanor === demeanor) {
+        clearSelection();
+        return;
+      }
+
+      activeDemeanor = demeanor;
+      activePhrase = null;
+
+      // Clear previous selections
+      d3.selectAll('.phrase, .demeanor').classed('dimmed', false);
+
+      // Find phrases connected to this demeanor
+      const connectedPhrases = [];
+      connections.forEach((demeanors, phrase) => {
+        if (demeanors.some(d => d.demeanor === demeanor)) {
+          connectedPhrases.push(phrase);
+        }
+      });
+
+      // Dim non-connected elements
+      d3.selectAll('.demeanor').classed('dimmed', d => d !== demeanor);
+      d3.selectAll('.phrase').classed('dimmed', d => !connectedPhrases.includes(d));
+
+      // Dim non-connected lines
+      d3.selectAll('.connection-line').classed('dimmed', function () {
+        const lineDemeanor = d3.select(this).attr('data-demeanor');
+        return lineDemeanor !== demeanor;
+      });
+    }
+
+    function clearSelection() {
+      activePhrase = null;
+      activeDemeanor = null;
+      d3.selectAll('.phrase, .demeanor').classed('dimmed', false);
+      d3.selectAll('.connection-line').classed('dimmed', false);
+
+      // Redraw all connections if they were removed
+      if (svg.selectAll('.connection-line').empty()) {
+        drawAllConnections();
+      }
+    }
+
+    // Draw all connections initially
+    function drawAllConnections() {
+      // Clear existing lines first
+      svg.selectAll('.connection-line').remove();
+
+      const container = document.querySelector('.container');
+      const containerRect = container.getBoundingClientRect();
+
+      consentData.forEach(([phrase, demeanor]) => {
+        const phraseEl = Array.from(document.querySelectorAll('.phrase')).find(el => el.textContent === phrase);
+        const demeanorEl = Array.from(document.querySelectorAll('.demeanor')).find(el => el.textContent === demeanor);
+
+        if (!phraseEl || !demeanorEl) return;
+
+        const phraseRect = phraseEl.getBoundingClientRect();
+        const demeanorRect = demeanorEl.getBoundingClientRect();
+
+        // Calculate coordinates relative to container
+        const x1 = phraseRect.right - containerRect.left;
+        const y1 = (phraseRect.top + phraseRect.height / 2) - containerRect.top;
+        const x2 = demeanorRect.left - containerRect.left;
+        const y2 = (demeanorRect.top + demeanorRect.height / 2) - containerRect.top;
+
+        svg.append('path')
+          .attr('class', 'connection-line')
+          .attr('data-phrase', phrase)
+          .attr('data-demeanor', demeanor)
+          .attr('d', `M ${x1} ${y1} Q ${(x1 + x2) / 2} ${y1} ${x2} ${y2}`);
+      });
+    }
+
+    // Draw all connections on load
+    document.addEventListener('DOMContentLoaded', () => {
+      drawAllConnections();
+    });
+
+    // If DOM already loaded
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', drawAllConnections);
+    } else {
+      drawAllConnections();
+    }
+
+    // Click outside to clear selection
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.phrase') && !event.target.closest('.demeanor')) {
+        clearSelection();
+      }
+    });
+
+    // ACTUALLY ADD THE RESIZE EVENT HANDLER
+    window.addEventListener('resize', () => {
+      svg.selectAll('.connection-line').remove();
+      drawAllConnections();
+    });
+  </script>
+</body>
+
+</html>
