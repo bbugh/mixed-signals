@@ -71,6 +71,15 @@
       padding-right: 0;
     }
 
+    #phrases h3 {
+      text-align: right;
+      padding-left: 0;
+    }
+
+    #demeanors h3 {
+      padding-right: 0;
+    }
+
     svg {
       position: absolute;
       top: 0;
@@ -82,21 +91,26 @@
     }
 
     .connection-line {
-      stroke: rgba(100, 200, 255, 0.6);
       stroke-width: 2;
       fill: none;
       transition: opacity 0.3s ease;
       pointer-events: none;
     }
 
-    .connection-line.dimmed {
+    .line-dot {
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .connection-line.dimmed,
+    .line-dot.dimmed {
       opacity: 0.1;
     }
 
     @media (max-width: 768px) {
       body {
         padding: 10px;
-
+        font-size: 14px;
       }
 
       .container {
@@ -108,7 +122,7 @@
       }
 
       h3 {
-
+        font-size: 16px;
         margin-bottom: 10px;
       }
     }
@@ -248,8 +262,8 @@
       d3.selectAll('.phrase').classed('dimmed', d => d !== phrase);
       d3.selectAll('.demeanor').classed('dimmed', d => !connectedDemeanorNames.includes(d));
 
-      // Dim non-connected lines
-      d3.selectAll('.connection-line').classed('dimmed', function () {
+      // Dim non-connected lines and dots
+      d3.selectAll('.connection-line, .line-dot').classed('dimmed', function () {
         const linePhrase = d3.select(this).attr('data-phrase');
         return linePhrase !== phrase;
       });
@@ -279,8 +293,8 @@
       d3.selectAll('.demeanor').classed('dimmed', d => d !== demeanor);
       d3.selectAll('.phrase').classed('dimmed', d => !connectedPhrases.includes(d));
 
-      // Dim non-connected lines
-      d3.selectAll('.connection-line').classed('dimmed', function () {
+      // Dim non-connected lines and dots
+      d3.selectAll('.connection-line, .line-dot').classed('dimmed', function () {
         const lineDemeanor = d3.select(this).attr('data-demeanor');
         return lineDemeanor !== demeanor;
       });
@@ -290,7 +304,7 @@
       activePhrase = null;
       activeDemeanor = null;
       d3.selectAll('.phrase, .demeanor').classed('dimmed', false);
-      d3.selectAll('.connection-line').classed('dimmed', false);
+      d3.selectAll('.connection-line, .line-dot').classed('dimmed', false);
 
       // Redraw all connections if they were removed
       if (svg.selectAll('.connection-line').empty()) {
@@ -301,12 +315,15 @@
     // Draw all connections initially
     function drawAllConnections() {
       // Clear existing lines first
-      svg.selectAll('.connection-line').remove();
+      svg.selectAll('.connection-line, .line-dot, defs').remove();
+
+      // Create gradient definitions
+      const defs = svg.append('defs');
 
       const container = document.querySelector('.container');
       const containerRect = container.getBoundingClientRect();
 
-      consentData.forEach(([phrase, demeanor]) => {
+      consentData.forEach(([phrase, demeanor], index) => {
         const phraseEl = Array.from(document.querySelectorAll('.phrase')).find(el => el.textContent === phrase);
         const demeanorEl = Array.from(document.querySelectorAll('.demeanor')).find(el => el.textContent === demeanor);
 
@@ -321,11 +338,56 @@
         const x2 = demeanorRect.left - containerRect.left;
         const y2 = (demeanorRect.top + demeanorRect.height / 2) - containerRect.top;
 
-        svg.append('path')
+        // Get colors based on text color (same as before)
+        const phraseCategory = getPhraseCategory(phrase);
+        const demeanorCategory = getDemeanorCategory(demeanor);
+        const phraseColor = phraseCategory === 'enthusiastic' ? '#4ade80' :
+          phraseCategory === 'neutral' ? '#9ca3af' : '#f87171';
+        const demeanorColor = demeanorCategory === 'enthusiastic' ? '#4ade80' :
+          demeanorCategory === 'neutral' ? '#9ca3af' : '#f87171';
+
+        // Create unique gradient for this line
+        const gradientId = `gradient-${index}`;
+        const gradient = defs.append('linearGradient')
+          .attr('id', gradientId)
+          .attr('x1', '0%').attr('y1', '0%')
+          .attr('x2', '100%').attr('y2', '0%')
+          .attr('gradientUnits', "userSpaceOnUse");
+
+        gradient.append('stop')
+          .attr('offset', '45%')
+          .attr('stop-color', phraseColor);
+
+        gradient.append('stop')
+          .attr('offset', '65%')
+          .attr('stop-color', demeanorColor);
+
+        // Draw line with gradient
+        const line = svg.append('path')
           .attr('class', 'connection-line')
           .attr('data-phrase', phrase)
           .attr('data-demeanor', demeanor)
-          .attr('d', `M ${x1} ${y1} Q ${(x1 + x2) / 2} ${y1} ${x2} ${y2}`);
+          .attr('d', `M ${x1} ${y1} Q ${(x1 + x2) / 2} ${y1} ${x2} ${y2}`)
+          .attr('stroke', `url(#${gradientId})`);
+
+        // Add dots at line ends with text colors
+        svg.append('circle')
+          .attr('class', 'line-dot')
+          .attr('cx', x1)
+          .attr('cy', y1)
+          .attr('r', 3)
+          .attr('fill', phraseColor)
+          .attr('data-phrase', phrase)
+          .attr('data-demeanor', demeanor);
+
+        svg.append('circle')
+          .attr('class', 'line-dot')
+          .attr('cx', x2)
+          .attr('cy', y2)
+          .attr('r', 3)
+          .attr('fill', demeanorColor)
+          .attr('data-phrase', phrase)
+          .attr('data-demeanor', demeanor);
       });
     }
 
