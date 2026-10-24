@@ -143,44 +143,39 @@
   <script>
     const consentData = [
       ["Fuck yes", "Enthusiastically"],
-      ["Hell yeah", "Excitedly"],
-      ["Absolutely", "Emphatically"],
+      ["Hell yeah", "Enthusiastically"],
+      ["Absolutely", "Enthusiastically"],
       ["I'd love to", "Warmly"],
-      ["Definitely", "Firmly"],
-      ["Yes", "Eagerly"],
-      ["Good", "Cheerfully"],
+      ["Definitely", "Confidently"],
+      ["Yes", "Enthusiastically"],
+      ["Good", "Warmly"],
       ["Sure", "Enthusiastically"],
       ["Yes", "Warmly"],
       ["Sure", "Warmly"],
-      ["Yes", "Cheerfully"],
       ["Okay", "Enthusiastically"],
       ["Sure", "Casually"],
       ["Yes", "Confidently"],
-      ["Sure", "Agreeably"],
-      ["Yes", "Clearly"],
-      ["Sure", "Readily"],
       ["Yes", "Flatly"],
       ["Sure", "Flatly"],
       ["Okay", "Indifferently"],
-      ["I guess", "Uncertainly"],
-      ["Fine", "Resignedly"],
+      ["I guess", "Hesitantly"],
+      ["Fine", "Reluctantly"],
       ["Whatever", "Indifferently"],
-      ["Sure", "Dryly"],
       ["I suppose", "Hesitantly"],
       ["Sure", "Dismissively"],
       ["Maybe later", "Evasively"],
       ["No thanks", "Politely"],
-      ["Not really", "Gently"],
+      ["Not really", "Carefully"],
       ["I don't think so", "Carefully"],
       ["No", "Hesitantly"],
-      ["No", "Curtly"],
+      ["No", "Sharply"],
       ["Absolutely not", "Coldly"],
       ["Hell no", "Sharply"],
       ["Fuck no", "Angrily"]
     ];
 
-    const neutralStart = 18;
-    const dismissiveStart = 25;
+    const neutralStart = 13;
+    const dismissiveStart = 20;
 
     // Extract unique phrases and demeanors
     const uniquePhrases = [...new Set(consentData.map(d => d[0]))];
